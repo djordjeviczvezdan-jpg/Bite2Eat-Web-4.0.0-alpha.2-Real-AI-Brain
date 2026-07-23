@@ -1,0 +1,10 @@
+Bite2Eat Web 1.2.0-alpha.1
+
+This release closes the ordering loop with improved checkout validation, a live kitchen workflow and a persistent customer tracking page.
+
+Test flow:
+1. Open /r/jimmys and place a demo order.
+2. Open the full tracking page from the confirmation screen.
+3. Open /r/jimmys/kitchen in a logged-in restaurant session.
+4. Accept the order and advance it through Preparing, Ready and Completed.
+5. Watch the customer tracking page refresh automatically.

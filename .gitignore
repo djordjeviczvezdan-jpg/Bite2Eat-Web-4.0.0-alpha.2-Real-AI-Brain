@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+
+# Environment secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build files
+dist/
+build/
+coverage/
+tsconfig.tsbuildinfo
+
+# Operating system
+.DS_Store
+Thumbs.db
+
+# Backups
+*.backup.tsx
+*.backup.ts
