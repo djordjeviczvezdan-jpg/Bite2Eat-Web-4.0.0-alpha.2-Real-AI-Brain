@@ -64,22 +64,18 @@ export function calculateRestaurantHealth({
 
   const reasons: string[] = [];
 
-  if (!settings.acceptingOrders) {
-    reasons.push("Online ordering is paused.");
-  }
-
+  if (!settings.acceptingOrders) reasons.push("Online ordering is paused.");
   if (unavailableItems > 0) {
-    reasons.push(`${unavailableItems} menu item${unavailableItems === 1 ? " is" : "s are"} unavailable.`);
+    reasons.push(
+      `${unavailableItems} menu item${unavailableItems === 1 ? " is" : "s are"} unavailable.`
+    );
   }
-
   if (!settings.inventoryEnabled) {
     reasons.push("Inventory intelligence is not enabled.");
   }
-
   if (liveOrders.length > 5) {
     reasons.push("Kitchen workload is above the preferred operating range.");
   }
-
   if (reasons.length === 0) {
     reasons.push("Core restaurant systems are operating normally.");
   }

@@ -6,6 +6,7 @@ export type BrainInput = {
   menu: MenuItem[];
   orders: RestaurantOrder[];
   settings: RestaurantSettings;
+  now?: Date;
 };
 
 export type HealthArea =
@@ -44,12 +45,70 @@ export type BrainRecommendation = {
   expectedImpact: string;
 };
 
+export type HourlyMetric = {
+  hour: number;
+  label: string;
+  actualRevenue: number;
+  forecastRevenue: number;
+  actualOrders: number;
+  forecastOrders: number;
+};
+
+export type PeakWindow = {
+  startHour: number;
+  endHour: number;
+  label: string;
+  expectedOrders: number;
+  expectedRevenue: number;
+  pressure: number;
+};
+
+export type TrendDirection = "up" | "down" | "stable";
+
+export type TrendMetric = {
+  label: string;
+  value: number;
+  unit: "percent" | "currency" | "count";
+  direction: TrendDirection;
+  explanation: string;
+};
+
+export type RestaurantTrends = {
+  revenue: TrendMetric;
+  orders: TrendMetric;
+  averageOrderValue: TrendMetric;
+  repeatDemand: TrendMetric;
+};
+
+export type ForecastReason = {
+  label: string;
+  impact: "positive" | "negative" | "neutral";
+};
+
 export type RestaurantForecast = {
   predictedClosingRevenue: number;
   predictedOrders: number;
+  forecastRevenueToNow: number;
+  actualRevenueToNow: number;
+  variancePercent: number;
   confidence: number;
+  confidenceLabel: "High" | "Moderate" | "Early estimate";
   kitchenPressure: number;
   kitchenStatus: "Under control" | "Busy" | "High pressure";
+  peakWindows: PeakWindow[];
+  hourly: HourlyMetric[];
+  reasons: ForecastReason[];
+};
+
+export type TimelineEventTone = "info" | "positive" | "warning" | "urgent";
+
+export type TimelineEvent = {
+  id: string;
+  time: string;
+  title: string;
+  description: string;
+  tone: TimelineEventTone;
+  isForecast: boolean;
 };
 
 export type TopSeller = {
@@ -57,6 +116,40 @@ export type TopSeller = {
   name: string;
   quantity: number;
   revenue: number;
+};
+
+export type NormalizedOrder = {
+  id: string;
+  orderNumber: string | number;
+  timestamp: Date;
+  hour: number;
+  weekday: number;
+  total: number;
+  status: string;
+  itemCount: number;
+  customerKey: string;
+};
+
+export type BusinessData = {
+  now: Date;
+  currentHour: number;
+  weekday: number;
+  openingHour: number;
+  closingHour: number;
+  orders: NormalizedOrder[];
+  todaysOrders: NormalizedOrder[];
+  historicalOrders: NormalizedOrder[];
+  completedOrders: NormalizedOrder[];
+  activeOrders: NormalizedOrder[];
+  revenue: number;
+  completedRevenue: number;
+  averageOrderValue: number;
+  availableItems: number;
+  unavailableItems: number;
+  menuSize: number;
+  acceptingOrders: boolean;
+  inventoryEnabled: boolean;
+  recipeCostingEnabled: boolean;
 };
 
 export type RestaurantBrain = {
@@ -71,6 +164,8 @@ export type RestaurantBrain = {
   unavailableItems: number;
   health: RestaurantHealth;
   forecast: RestaurantForecast;
+  trends: RestaurantTrends;
+  timeline: TimelineEvent[];
   recommendations: BrainRecommendation[];
   topSellers: TopSeller[];
   strongestOpportunity: {

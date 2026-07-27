@@ -1,6 +1,8 @@
 import type {
   BrainInput,
   BrainRecommendation,
+  RestaurantForecast,
+  RestaurantTrends,
   TopSeller
 } from "./types";
 
@@ -9,6 +11,8 @@ type RecommendationContext = BrainInput & {
   unavailableItems: number;
   averageOrderValue: number;
   topSellers: TopSeller[];
+  forecast: RestaurantForecast;
+  trends: RestaurantTrends;
 };
 
 export function generateRecommendations({
@@ -18,7 +22,9 @@ export function generateRecommendations({
   liveOrders,
   unavailableItems,
   averageOrderValue,
-  topSellers
+  topSellers,
+  forecast,
+  trends
 }: RecommendationContext): BrainRecommendation[] {
   const recommendations: BrainRecommendation[] = [];
 
@@ -33,15 +39,15 @@ export function generateRecommendations({
       confidence: 100,
       expectedImpact: "Restore online revenue"
     });
-  } else if (liveOrders >= 6) {
+  } else if (forecast.kitchenPressure >= 70) {
     recommendations.push({
       id: "kitchen-pressure",
       tone: "warning",
       target: "kitchen",
-      title: "Kitchen pressure is elevated",
-      description: `${liveOrders} active orders are in progress. Prioritise delayed tickets and keep statuses current.`,
+      title: "Prepare for elevated kitchen pressure",
+      description: `The forecast engine estimates ${forecast.kitchenPressure}% pressure around the next demand peak.`,
       actionLabel: "Open kitchen",
-      confidence: 92,
+      confidence: forecast.confidence,
       expectedImpact: "Reduce delays"
     });
   } else {
@@ -49,12 +55,10 @@ export function generateRecommendations({
       id: "operations-ready",
       tone: "positive",
       target: "storefront",
-      title: "Restaurant is ready for new orders",
-      description: liveOrders
-        ? `${liveOrders} active order${liveOrders === 1 ? "" : "s"} are currently under control.`
-        : "Ordering is open and there are no active orders requiring attention.",
+      title: "Operations are within the preferred range",
+      description: `${liveOrders} active order${liveOrders === 1 ? "" : "s"} and ${forecast.kitchenStatus.toLowerCase()} kitchen pressure.`,
       actionLabel: liveOrders ? "Open kitchen" : "View storefront",
-      confidence: 96,
+      confidence: forecast.confidence,
       expectedImpact: "Maintain service quality"
     });
   }
@@ -70,17 +74,6 @@ export function generateRecommendations({
       confidence: 100,
       expectedImpact: "Protect conversion"
     });
-  } else {
-    recommendations.push({
-      id: "menu-availability",
-      tone: "positive",
-      target: "menu",
-      title: "Full menu availability",
-      description: `${menu.length} menu items are currently available to customers.`,
-      actionLabel: "Optimise menu",
-      confidence: 100,
-      expectedImpact: "Maintain conversion"
-    });
   }
 
   if (!settings.inventoryEnabled) {
@@ -89,29 +82,30 @@ export function generateRecommendations({
       tone: "warning",
       target: "settings",
       title: "Enable inventory intelligence",
-      description: "Inventory tracking unlocks shortage alerts, waste insights and reorder recommendations.",
+      description: "Inventory tracking unlocks shortage alerts, demand forecasts and reorder recommendations.",
       actionLabel: "Enable inventory",
       confidence: 98,
       expectedImpact: "Reduce stock risk"
     });
   } else {
     recommendations.push({
-      id: "inventory-review",
+      id: "inventory-peak",
       tone: "positive",
       target: "inventory",
-      title: "Review stock before the next rush",
-      description: "Check low-stock ingredients and supplier risks before demand increases.",
+      title: "Validate stock before the next peak",
+      description: forecast.peakWindows[0]
+        ? `${forecast.peakWindows[0].expectedOrders} orders are expected during ${forecast.peakWindows[0].label}.`
+        : "Review low-stock ingredients before demand increases.",
       actionLabel: "Open inventory",
-      confidence: 82,
+      confidence: forecast.confidence,
       expectedImpact: "Avoid shortages"
     });
   }
 
   const bestSeller = topSellers[0];
-
   recommendations.push({
     id: "increase-order-value",
-    tone: "positive",
+    tone: trends.averageOrderValue.direction === "down" ? "warning" : "positive",
     target: "marketing",
     title: "Increase average order value",
     description: bestSeller

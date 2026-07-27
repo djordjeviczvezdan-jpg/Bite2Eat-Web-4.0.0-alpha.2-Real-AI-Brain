@@ -1,14 +1,14 @@
+import { buildBusinessData } from "./adapters/business-data";
+import { buildForecast } from "./forecast-engine";
 import { calculateRestaurantHealth } from "./restaurant-health";
 import { generateRecommendations } from "./recommendation-engine";
+import { buildTimeline } from "./timeline-engine";
+import { buildTrends } from "./trend-engine";
 import type {
   BrainInput,
   RestaurantBrain,
   TopSeller
 } from "./types";
-
-function clamp(value: number, min = 0, max = 100) {
-  return Math.min(max, Math.max(min, Math.round(value)));
-}
 
 function buildTopSellers({ orders }: BrainInput): TopSeller[] {
   const sales = new Map<number, TopSeller>();
@@ -36,77 +36,45 @@ function buildTopSellers({ orders }: BrainInput): TopSeller[] {
 }
 
 export function buildRestaurantBrain(input: BrainInput): RestaurantBrain {
-  const { menu, orders, settings } = input;
-
-  const liveOrders = orders.filter((order) => order.status !== "completed");
-  const completedOrders = orders.filter((order) => order.status === "completed");
-
-  const revenue = orders.reduce((sum, order) => sum + order.total, 0);
-  const completedRevenue = completedOrders.reduce(
-    (sum, order) => sum + order.total,
-    0
-  );
-
-  const averageOrderValue = orders.length ? revenue / orders.length : 0;
-  const availableItems = menu.filter((item) => item.available !== false).length;
-  const unavailableItems = menu.length - availableItems;
-  const topSellers = buildTopSellers(input);
-
-  const kitchenPressure = clamp(liveOrders.length * 18);
-  const predictedClosingRevenue = Math.max(
-    revenue,
-    revenue * (settings.acceptingOrders ? 1.18 : 1) +
-      liveOrders.length * Math.max(averageOrderValue, 18)
-  );
-
-  const forecast = {
-    predictedClosingRevenue,
-    predictedOrders: Math.max(
-      orders.length,
-      Math.round(
-        orders.length * (settings.acceptingOrders ? 1.15 : 1) +
-          liveOrders.length * 0.5
-      )
-    ),
-    confidence: clamp(58 + Math.min(orders.length, 25) * 1.4),
-    kitchenPressure,
-    kitchenStatus:
-      kitchenPressure >= 75
-        ? ("High pressure" as const)
-        : kitchenPressure >= 40
-          ? ("Busy" as const)
-          : ("Under control" as const)
-  };
-
+  const businessData = buildBusinessData(input);
+  const forecast = buildForecast(businessData);
+  const trends = buildTrends(businessData);
+  const timeline = buildTimeline(businessData, forecast);
   const health = calculateRestaurantHealth(input);
+  const topSellers = buildTopSellers(input);
 
   const recommendations = generateRecommendations({
     ...input,
-    liveOrders: liveOrders.length,
-    unavailableItems,
-    averageOrderValue,
-    topSellers
+    liveOrders: businessData.activeOrders.length,
+    unavailableItems: businessData.unavailableItems,
+    averageOrderValue: businessData.averageOrderValue,
+    topSellers,
+    forecast,
+    trends
   });
 
-  const strongestSeller = topSellers[0]?.name ?? menu[0]?.name ?? "your leading item";
+  const strongestSeller =
+    topSellers[0]?.name ?? input.menu[0]?.name ?? "your leading item";
 
   return {
-    generatedAt: new Date().toISOString(),
-    revenue,
-    completedRevenue,
-    averageOrderValue,
-    totalOrders: orders.length,
-    activeOrders: liveOrders.length,
-    completedOrders: completedOrders.length,
-    availableItems,
-    unavailableItems,
+    generatedAt: businessData.now.toISOString(),
+    revenue: businessData.revenue,
+    completedRevenue: businessData.completedRevenue,
+    averageOrderValue: businessData.averageOrderValue,
+    totalOrders: businessData.todaysOrders.length,
+    activeOrders: businessData.activeOrders.length,
+    completedOrders: businessData.completedOrders.length,
+    availableItems: businessData.availableItems,
+    unavailableItems: businessData.unavailableItems,
     health,
     forecast,
+    trends,
+    timeline,
     recommendations,
     topSellers,
     strongestOpportunity: {
       title: "Increase average order value with a targeted add-on",
-      description: `Promote a side or drink beside ${strongestSeller} to improve attachment rate without increasing order volume.`,
+      description: `Promote a side or drink beside ${strongestSeller} before the next predicted peak.`,
       target: "marketing"
     }
   };
